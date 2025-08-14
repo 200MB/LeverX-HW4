@@ -1,0 +1,858 @@
+openapi: 3.0.3
+info:
+  title: Student and Room Management API
+  version: 1.0.0
+  description: |
+    Comprehensive REST API with strict validation rules, full ID management,
+    and detailed error handling. Student IDs are immutable; room IDs can be updated
+    only if the room is empty.
+
+paths:
+  /students:
+    get:
+      summary: List all students
+      parameters:
+        - name: room_id
+          in: query
+          description: Filter students by room ID
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            example: 101
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Student'
+              example:
+                - id: 1001
+                  name: "Alice Johnson"
+                  birthday: "2011-08-22T00:00:00.000Z"
+                  room_id: 101
+                  sex: "F"
+                - id: 1002
+                  name: "Bob Smith"
+                  birthday: "2010-05-14T00:00:00.000Z"
+                  room_id: 101
+                  sex: "M"
+        '400':
+          description: Invalid room filter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: "Invalid room filter"
+                  details: ["room_id must be a positive integer, got -5"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Unable to retrieve students"
+                  details: ["Database connection failed"]
+
+    post:
+      summary: Create a new student
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentCreateInput'
+            example:
+              name: "Charlie Brown"
+              birthday: "2012-03-10T00:00:00.000Z"
+              room_id: 102
+              sex: "M"
+      responses:
+        '201':
+          description: Student created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+              example:
+                id: 1003
+                name: "Charlie Brown"
+                birthday: "2012-03-10T00:00:00.000Z"
+                room_id: 102
+                sex: "M"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                duplicateID:
+                  value:
+                    error:
+                      code: 400
+                      message: "ID conflict"
+                      details: ["Student ID 1003 already exists"]
+                validationError:
+                  value:
+                    error:
+                      code: 400
+                      message: "Validation failed"
+                      details:
+                        - "name: must be 2-100 characters, got 'A'"
+                        - "room_id: must be a positive integer, got 0"
+                        - "sex: must be 'M' or 'F', got 'X'"
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: "Room not found"
+                  details: ["Room ID 473 does not exist"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Unable to create student"
+                  details: ["Database write operation failed"]
+
+  /students/{student_id}:
+    parameters:
+      - name: student_id
+        in: path
+        required: true
+        description: Numeric ID of the student (immutable)
+        schema:
+          type: integer
+          minimum: 1
+          example: 1001
+
+    get:
+      summary: Get student by ID
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+              example:
+                id: 1001
+                name: "Alice Johnson"
+                birthday: "2011-08-22T00:00:00.000Z"
+                room_id: 101
+                sex: "F"
+        '400':
+          description: Invalid student ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: "Invalid student ID"
+                  details: ["Student ID must be a positive integer, got -10"]
+        '404':
+          description: Student not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: "Student not found"
+                  details: ["No student exists with ID 999"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Unexpected server error"
+                  details: ["Database read failed"]
+
+    put:
+      summary: Update student
+      description: Full student update with validation (ID cannot be updated)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentInput'
+            example:
+              name: "Alice Johnson"
+              birthday: "2011-08-22T00:00:00.000Z"
+              room_id: 101
+              sex: "F"
+      responses:
+        '200':
+          description: Student updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+              example:
+                id: 1001
+                name: "Alice Johnson"
+                birthday: "2011-08-22T00:00:00.000Z"
+                room_id: 101
+                sex: "F"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidStudentId:
+                  value:
+                    error:
+                      code: 400
+                      message: "Invalid student ID"
+                      details: ["Student ID must be a positive integer, got 0"]
+                validationError:
+                  value:
+                    error:
+                      code: 400
+                      message: "Validation failed"
+                      details:
+                        - "name: must be 2-100 characters, got ''"
+                        - "sex: must be 'M' or 'F', got 'X'"
+        '404':
+          description: Student or room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                studentNotFound:
+                  value:
+                    error:
+                      code: 404
+                      message: "Student not found"
+                      details: ["Student ID 999 does not exist"]
+                roomNotFound:
+                  value:
+                    error:
+                      code: 404
+                      message: "Room not found"
+                      details: ["Room ID 500 does not exist"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Unable to update student"
+                  details: ["Database update operation failed"]
+
+    delete:
+      summary: Delete student
+      responses:
+        '204':
+          description: Student deleted successfully
+        '400':
+          description: Invalid student ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: "Invalid student ID"
+                  details: ["Student ID must be a positive integer, got -1"]
+        '404':
+          description: Student not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: "Student not found"
+                  details: ["No student exists with ID 999"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Unable to delete student"
+                  details: ["Database delete operation failed"]
+
+  /students/{student_id}/move:
+    post:
+      summary: Move student to another room
+      parameters:
+        - name: student_id
+          in: path
+          required: true
+          description: Numeric ID of the student
+          schema:
+            type: integer
+            minimum: 1
+          example: 1001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_room_id:
+                  type: integer
+                  minimum: 1
+              required:
+                - new_room_id
+            example:
+              new_room_id: 102
+      responses:
+        '200':
+          description: Student moved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+              example:
+                id: 1001
+                name: "Alice Johnson"
+                birthday: "2011-08-22T00:00:00.000Z"
+                room_id: 102
+                sex: "F"
+        '400':
+          description: Invalid move operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidStudentId:
+                  value:
+                    error:
+                      code: 400
+                      message: "Invalid student ID"
+                      details: ["Student ID must be a positive integer, got -5"]
+                invalidRoomId:
+                  value:
+                    error:
+                      code: 400
+                      message: "Invalid room ID"
+                      details: ["new_room_id must be a positive integer, got 0"]
+                sameRoom:
+                  value:
+                    error:
+                      code: 400
+                      message: "Invalid relocation"
+                      details: ["Student is already in room 102"]
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                studentNotFound:
+                  value:
+                    error:
+                      code: 404
+                      message: "Student not found"
+                      details: ["Student ID 999 does not exist"]
+                roomNotFound:
+                  value:
+                    error:
+                      code: 404
+                      message: "Room not found"
+                      details: ["Room ID 999 does not exist"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Failed to move student"
+                  details: ["Database transaction failed"]
+
+  /rooms:
+    get:
+      summary: List all rooms
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Room'
+              example:
+                - id: 101
+                  name: "Physics Lab"
+                - id: 102
+                  name: "Chemistry Lab"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Unable to retrieve rooms"
+                  details: ["Database read failed"]
+
+    post:
+      summary: Create new room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomCreateInput'
+            example:
+              name: "Biology Lab"
+      responses:
+        '201':
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+              example:
+                id: 103
+                name: "Biology Lab"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                duplicateID:
+                  value:
+                    error:
+                      code: 400
+                      message: "ID conflict"
+                      details: ["Room ID 103 already exists"]
+                validationError:
+                  value:
+                    error:
+                      code: 400
+                      message: "Validation failed"
+                      details:
+                        - "name: must be 3-50 characters, got 'AB'"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Unable to create room"
+                  details: ["Database write operation failed"]
+
+  /rooms/{room_id}:
+    parameters:
+      - name: room_id
+        in: path
+        required: true
+        description: Numeric ID of the room
+        schema:
+          type: integer
+          minimum: 1
+          example: 101
+
+    get:
+      summary: Get room by ID
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+              example:
+                id: 101
+                name: "Physics Lab"
+        '400':
+          description: Invalid room ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: "Invalid room ID"
+                  details: ["Room ID must be a positive integer, got -1"]
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: "Room not found"
+                  details: ["No room exists with ID 999"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Unexpected server error"
+                  details: ["Database read failed"]
+
+    put:
+      summary: Update room details
+      description: |
+        Updates the details of an existing room.
+        Room ID is immutable, but the name can be updated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomUpdateInput'
+            example:
+              name: "Advanced Physics Lab"
+      responses:
+        '200':
+          description: Room updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+              example:
+                id: 101
+                name: "Advanced Physics Lab"
+        '400':
+          description: Invalid request or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                validationError:
+                  value:
+                    error:
+                      code: 400
+                      message: "Validation failed"
+                      details: ["name: must be 3-50 characters, got 'A'"]
+                invalidId:
+                  value:
+                    error:
+                      code: 400
+                      message: "Invalid room ID"
+                      details: ["Room ID must be a positive integer"]
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: "Room not found"
+                  details: ["No room exists with ID 999"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Unable to update room"
+                  details: ["Database update operation failed"]
+
+    delete:
+      summary: Delete a room
+      description: Deletes a room if it is empty.
+      responses:
+        '204':
+          description: Room deleted successfully
+        '400':
+          description: Invalid request or room is not empty
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidId:
+                  value:
+                    error:
+                      code: 400
+                      message: "Invalid room ID"
+                      details: ["Room ID must be a positive integer"]
+                notEmpty:
+                  value:
+                    error:
+                      code: 400
+                      message: "Room is not empty"
+                      details: ["Cannot delete room 101, it has 2 students"]
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: "Room not found"
+                  details: ["No room exists with ID 999"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Unable to delete room"
+                  details: ["Database delete operation failed"]
+
+  /rooms/{room_id}/students:
+    get:
+      summary: Find all students in a room
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          description: Numeric ID of the room
+          schema:
+            type: integer
+            minimum: 1
+          example: 101
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Student'
+              example:
+                - id: 1001
+                  name: "Alice Johnson"
+                  birthday: "2011-08-22T00:00:00.000Z"
+                  room_id: 101
+                  sex: "F"
+                - id: 1002
+                  name: "Bob Smith"
+                  birthday: "2010-05-14T00:00:00.000Z"
+                  room_id: 101
+                  sex: "M"
+        '400':
+          description: Invalid room ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: "Invalid room ID"
+                  details: ["Room ID must be a positive integer, got -1"]
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: "Room not found"
+                  details: ["No room exists with ID 999"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 500
+                  message: "Unexpected server error"
+                  details: ["Database read failed"]
+
+components:
+  schemas:
+    Student:
+      type: object
+      required: [id, name, birthday, room_id, sex]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          description: Unique identifier for the student.
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Full name of the student.
+        birthday:
+          type: string
+          format: date-time
+          description: Student's date of birth in ISO 8601 format.
+        room_id:
+          type: integer
+          minimum: 1
+          description: ID of the room the student is assigned to.
+        sex:
+          type: string
+          enum: [M, F]
+          description: Gender of the student ('M' or 'F').
+      additionalProperties: false
+
+    StudentCreateInput:
+      type: object
+      required: [name, birthday, room_id, sex]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Full name of the student.
+        birthday:
+          type: string
+          format: date-time
+          description: Student's date of birth in ISO 8601 format.
+        room_id:
+          type: integer
+          minimum: 1
+          description: ID of the room the student will be assigned to.
+        sex:
+          type: string
+          enum: [M, F]
+          description: Gender of the student ('M' or 'F').
+      additionalProperties: false
+
+    StudentInput:
+      type: object
+      required: [name, birthday, room_id, sex]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Full name of the student.
+        birthday:
+          type: string
+          format: date-time
+          description: Student's date of birth in ISO 8601 format.
+        room_id:
+          type: integer
+          minimum: 1
+          description: ID of the room the student is assigned to.
+        sex:
+          type: string
+          enum: [M, F]
+          description: Gender of the student ('M' or 'F').
+      additionalProperties: false
+
+    Room:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          description: Unique identifier for the room.
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: Name of the room.
+      additionalProperties: false
+
+    RoomCreateInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: Name of the new room.
+      additionalProperties: false
+
+    RoomUpdateInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: The new name for the room.
+      additionalProperties: false
+      minProperties: 1
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+              description: HTTP status code.
+            message:
+              type: string
+              description: A brief, human-readable error message.
+            details:
+              type: array
+              items:
+                type: string
+              description: A list of specific validation or error details.
+          required: [code, message]
+      additionalProperties: false

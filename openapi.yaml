@@ -2,44 +2,48 @@ openapi: 3.0.3
 info:
   title: Student and Room Management API
   version: 1.0.0
-  description: |
-    Comprehensive REST API with strict validation rules, full ID management,
+  description: 'Comprehensive REST API with strict validation rules, full ID management,
+
     and detailed error handling. Student IDs are immutable; room IDs can be updated
+
     only if the room is empty.
 
+    '
 paths:
   /students:
     get:
       summary: List all students
       parameters:
-        - name: room_id
-          in: query
-          description: Filter students by room ID
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            example: 101
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/Search'
+      - $ref: '#/components/parameters/OrderingStudents'
+      - $ref: '#/components/parameters/SexFilter'
+      - $ref: '#/components/parameters/BirthdayFrom'
+      - $ref: '#/components/parameters/BirthdayTo'
+      - $ref: '#/components/parameters/RoomIdFilter'
       responses:
         '200':
           description: Successful operation
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Student'
+                $ref: '#/components/schemas/PaginatedStudentList'
               example:
+                count: 42
+                next: https://api.studentrooms.com/api/v1/students?page=3&page_size=20
+                previous: https://api.studentrooms.com/api/v1/students?page=1&page_size=20
+                results:
                 - id: 1001
-                  name: "Alice Johnson"
-                  birthday: "2011-08-22T00:00:00.000Z"
+                  name: Alice Johnson
+                  birthday: '2011-08-22T00:00:00.000Z'
                   room_id: 101
-                  sex: "F"
+                  sex: F
                 - id: 1002
-                  name: "Bob Smith"
-                  birthday: "2010-05-14T00:00:00.000Z"
+                  name: Bob Smith
+                  birthday: '2010-05-14T00:00:00.000Z'
                   room_id: 101
-                  sex: "M"
+                  sex: M
         '400':
           description: Invalid room filter
           content:
@@ -49,8 +53,9 @@ paths:
               example:
                 error:
                   code: 400
-                  message: "Invalid room filter"
-                  details: ["room_id must be a positive integer, got -5"]
+                  message: Invalid room filter
+                  details:
+                  - room_id must be a positive integer, got -5
         '500':
           description: Internal server error
           content:
@@ -60,9 +65,11 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Unable to retrieve students"
-                  details: ["Database connection failed"]
-
+                  message: Unable to retrieve students
+                  details:
+                  - Database connection failed
+      tags:
+      - Students
     post:
       summary: Create a new student
       requestBody:
@@ -72,10 +79,10 @@ paths:
             schema:
               $ref: '#/components/schemas/StudentCreateInput'
             example:
-              name: "Charlie Brown"
-              birthday: "2012-03-10T00:00:00.000Z"
+              name: Charlie Brown
+              birthday: '2012-03-10T00:00:00.000Z'
               room_id: 102
-              sex: "M"
+              sex: M
       responses:
         '201':
           description: Student created
@@ -85,10 +92,10 @@ paths:
                 $ref: '#/components/schemas/Student'
               example:
                 id: 1003
-                name: "Charlie Brown"
-                birthday: "2012-03-10T00:00:00.000Z"
+                name: Charlie Brown
+                birthday: '2012-03-10T00:00:00.000Z'
                 room_id: 102
-                sex: "M"
+                sex: M
         '400':
           description: Validation error
           content:
@@ -100,17 +107,18 @@ paths:
                   value:
                     error:
                       code: 400
-                      message: "ID conflict"
-                      details: ["Student ID 1003 already exists"]
+                      message: ID conflict
+                      details:
+                      - Student ID 1003 already exists
                 validationError:
                   value:
                     error:
                       code: 400
-                      message: "Validation failed"
+                      message: Validation failed
                       details:
-                        - "name: must be 2-100 characters, got 'A'"
-                        - "room_id: must be a positive integer, got 0"
-                        - "sex: must be 'M' or 'F', got 'X'"
+                      - 'name: must be 2-100 characters, got ''A'''
+                      - 'room_id: must be a positive integer, got 0'
+                      - 'sex: must be ''M'' or ''F'', got ''X'''
         '404':
           description: Room not found
           content:
@@ -120,8 +128,9 @@ paths:
               example:
                 error:
                   code: 404
-                  message: "Room not found"
-                  details: ["Room ID 473 does not exist"]
+                  message: Room not found
+                  details:
+                  - Room ID 473 does not exist
         '500':
           description: Internal server error
           content:
@@ -131,20 +140,21 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Unable to create student"
-                  details: ["Database write operation failed"]
-
+                  message: Unable to create student
+                  details:
+                  - Database write operation failed
+      tags:
+      - Students
   /students/{student_id}:
     parameters:
-      - name: student_id
-        in: path
-        required: true
-        description: Numeric ID of the student (immutable)
-        schema:
-          type: integer
-          minimum: 1
-          example: 1001
-
+    - name: student_id
+      in: path
+      required: true
+      description: Numeric ID of the student (immutable)
+      schema:
+        type: integer
+        minimum: 1
+        example: 1001
     get:
       summary: Get student by ID
       responses:
@@ -156,10 +166,10 @@ paths:
                 $ref: '#/components/schemas/Student'
               example:
                 id: 1001
-                name: "Alice Johnson"
-                birthday: "2011-08-22T00:00:00.000Z"
+                name: Alice Johnson
+                birthday: '2011-08-22T00:00:00.000Z'
                 room_id: 101
-                sex: "F"
+                sex: F
         '400':
           description: Invalid student ID
           content:
@@ -169,8 +179,9 @@ paths:
               example:
                 error:
                   code: 400
-                  message: "Invalid student ID"
-                  details: ["Student ID must be a positive integer, got -10"]
+                  message: Invalid student ID
+                  details:
+                  - Student ID must be a positive integer, got -10
         '404':
           description: Student not found
           content:
@@ -180,8 +191,9 @@ paths:
               example:
                 error:
                   code: 404
-                  message: "Student not found"
-                  details: ["No student exists with ID 999"]
+                  message: Student not found
+                  details:
+                  - No student exists with ID 999
         '500':
           description: Internal server error
           content:
@@ -191,9 +203,11 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Unexpected server error"
-                  details: ["Database read failed"]
-
+                  message: Unexpected server error
+                  details:
+                  - Database read failed
+      tags:
+      - Students
     put:
       summary: Update student
       description: Full student update with validation (ID cannot be updated)
@@ -204,10 +218,10 @@ paths:
             schema:
               $ref: '#/components/schemas/StudentInput'
             example:
-              name: "Alice Johnson"
-              birthday: "2011-08-22T00:00:00.000Z"
+              name: Alice Johnson
+              birthday: '2011-08-22T00:00:00.000Z'
               room_id: 101
-              sex: "F"
+              sex: F
       responses:
         '200':
           description: Student updated
@@ -217,10 +231,10 @@ paths:
                 $ref: '#/components/schemas/Student'
               example:
                 id: 1001
-                name: "Alice Johnson"
-                birthday: "2011-08-22T00:00:00.000Z"
+                name: Alice Johnson
+                birthday: '2011-08-22T00:00:00.000Z'
                 room_id: 101
-                sex: "F"
+                sex: F
         '400':
           description: Validation error
           content:
@@ -232,16 +246,17 @@ paths:
                   value:
                     error:
                       code: 400
-                      message: "Invalid student ID"
-                      details: ["Student ID must be a positive integer, got 0"]
+                      message: Invalid student ID
+                      details:
+                      - Student ID must be a positive integer, got 0
                 validationError:
                   value:
                     error:
                       code: 400
-                      message: "Validation failed"
+                      message: Validation failed
                       details:
-                        - "name: must be 2-100 characters, got ''"
-                        - "sex: must be 'M' or 'F', got 'X'"
+                      - 'name: must be 2-100 characters, got '''''
+                      - 'sex: must be ''M'' or ''F'', got ''X'''
         '404':
           description: Student or room not found
           content:
@@ -253,14 +268,16 @@ paths:
                   value:
                     error:
                       code: 404
-                      message: "Student not found"
-                      details: ["Student ID 999 does not exist"]
+                      message: Student not found
+                      details:
+                      - Student ID 999 does not exist
                 roomNotFound:
                   value:
                     error:
                       code: 404
-                      message: "Room not found"
-                      details: ["Room ID 500 does not exist"]
+                      message: Room not found
+                      details:
+                      - Room ID 500 does not exist
         '500':
           description: Internal server error
           content:
@@ -270,9 +287,11 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Unable to update student"
-                  details: ["Database update operation failed"]
-
+                  message: Unable to update student
+                  details:
+                  - Database update operation failed
+      tags:
+      - Students
     delete:
       summary: Delete student
       responses:
@@ -287,8 +306,9 @@ paths:
               example:
                 error:
                   code: 400
-                  message: "Invalid student ID"
-                  details: ["Student ID must be a positive integer, got -1"]
+                  message: Invalid student ID
+                  details:
+                  - Student ID must be a positive integer, got -1
         '404':
           description: Student not found
           content:
@@ -298,8 +318,9 @@ paths:
               example:
                 error:
                   code: 404
-                  message: "Student not found"
-                  details: ["No student exists with ID 999"]
+                  message: Student not found
+                  details:
+                  - No student exists with ID 999
         '500':
           description: Internal server error
           content:
@@ -309,21 +330,23 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Unable to delete student"
-                  details: ["Database delete operation failed"]
-
+                  message: Unable to delete student
+                  details:
+                  - Database delete operation failed
+      tags:
+      - Students
   /students/{student_id}/move:
     post:
       summary: Move student to another room
       parameters:
-        - name: student_id
-          in: path
-          required: true
-          description: Numeric ID of the student
-          schema:
-            type: integer
-            minimum: 1
-          example: 1001
+      - name: student_id
+        in: path
+        required: true
+        description: Numeric ID of the student
+        schema:
+          type: integer
+          minimum: 1
+        example: 1001
       requestBody:
         required: true
         content:
@@ -335,7 +358,7 @@ paths:
                   type: integer
                   minimum: 1
               required:
-                - new_room_id
+              - new_room_id
             example:
               new_room_id: 102
       responses:
@@ -347,10 +370,10 @@ paths:
                 $ref: '#/components/schemas/Student'
               example:
                 id: 1001
-                name: "Alice Johnson"
-                birthday: "2011-08-22T00:00:00.000Z"
+                name: Alice Johnson
+                birthday: '2011-08-22T00:00:00.000Z'
                 room_id: 102
-                sex: "F"
+                sex: F
         '400':
           description: Invalid move operation
           content:
@@ -362,20 +385,23 @@ paths:
                   value:
                     error:
                       code: 400
-                      message: "Invalid student ID"
-                      details: ["Student ID must be a positive integer, got -5"]
+                      message: Invalid student ID
+                      details:
+                      - Student ID must be a positive integer, got -5
                 invalidRoomId:
                   value:
                     error:
                       code: 400
-                      message: "Invalid room ID"
-                      details: ["new_room_id must be a positive integer, got 0"]
+                      message: Invalid room ID
+                      details:
+                      - new_room_id must be a positive integer, got 0
                 sameRoom:
                   value:
                     error:
                       code: 400
-                      message: "Invalid relocation"
-                      details: ["Student is already in room 102"]
+                      message: Invalid relocation
+                      details:
+                      - Student is already in room 102
         '404':
           description: Resource not found
           content:
@@ -387,14 +413,16 @@ paths:
                   value:
                     error:
                       code: 404
-                      message: "Student not found"
-                      details: ["Student ID 999 does not exist"]
+                      message: Student not found
+                      details:
+                      - Student ID 999 does not exist
                 roomNotFound:
                   value:
                     error:
                       code: 404
-                      message: "Room not found"
-                      details: ["Room ID 999 does not exist"]
+                      message: Room not found
+                      details:
+                      - Room ID 999 does not exist
         '500':
           description: Internal server error
           content:
@@ -404,9 +432,11 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Failed to move student"
-                  details: ["Database transaction failed"]
-
+                  message: Failed to move student
+                  details:
+                  - Database transaction failed
+      tags:
+      - Students
   /rooms:
     get:
       summary: List all rooms
@@ -416,14 +446,16 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Room'
+                $ref: '#/components/schemas/PaginatedRoomList'
               example:
+                count: 12
+                next: https://api.studentrooms.com/api/v1/rooms?page=2&page_size=20
+                previous: null
+                results:
                 - id: 101
-                  name: "Physics Lab"
+                  name: Physics Lab
                 - id: 102
-                  name: "Chemistry Lab"
+                  name: Chemistry Lab
         '500':
           description: Internal server error
           content:
@@ -433,9 +465,17 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Unable to retrieve rooms"
-                  details: ["Database read failed"]
-
+                  message: Unable to retrieve rooms
+                  details:
+                  - Database read failed
+      tags:
+      - Rooms
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/Search'
+      - $ref: '#/components/parameters/OrderingRooms'
+      - $ref: '#/components/parameters/RoomNameFilter'
     post:
       summary: Create new room
       requestBody:
@@ -445,7 +485,7 @@ paths:
             schema:
               $ref: '#/components/schemas/RoomCreateInput'
             example:
-              name: "Biology Lab"
+              name: Biology Lab
       responses:
         '201':
           description: Room created
@@ -455,7 +495,7 @@ paths:
                 $ref: '#/components/schemas/Room'
               example:
                 id: 103
-                name: "Biology Lab"
+                name: Biology Lab
         '400':
           description: Validation error
           content:
@@ -467,15 +507,16 @@ paths:
                   value:
                     error:
                       code: 400
-                      message: "ID conflict"
-                      details: ["Room ID 103 already exists"]
+                      message: ID conflict
+                      details:
+                      - Room ID 103 already exists
                 validationError:
                   value:
                     error:
                       code: 400
-                      message: "Validation failed"
+                      message: Validation failed
                       details:
-                        - "name: must be 3-50 characters, got 'AB'"
+                      - 'name: must be 3-50 characters, got ''AB'''
         '500':
           description: Internal server error
           content:
@@ -485,20 +526,21 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Unable to create room"
-                  details: ["Database write operation failed"]
-
+                  message: Unable to create room
+                  details:
+                  - Database write operation failed
+      tags:
+      - Rooms
   /rooms/{room_id}:
     parameters:
-      - name: room_id
-        in: path
-        required: true
-        description: Numeric ID of the room
-        schema:
-          type: integer
-          minimum: 1
-          example: 101
-
+    - name: room_id
+      in: path
+      required: true
+      description: Numeric ID of the room
+      schema:
+        type: integer
+        minimum: 1
+        example: 101
     get:
       summary: Get room by ID
       responses:
@@ -510,7 +552,7 @@ paths:
                 $ref: '#/components/schemas/Room'
               example:
                 id: 101
-                name: "Physics Lab"
+                name: Physics Lab
         '400':
           description: Invalid room ID
           content:
@@ -520,8 +562,9 @@ paths:
               example:
                 error:
                   code: 400
-                  message: "Invalid room ID"
-                  details: ["Room ID must be a positive integer, got -1"]
+                  message: Invalid room ID
+                  details:
+                  - Room ID must be a positive integer, got -1
         '404':
           description: Room not found
           content:
@@ -531,8 +574,9 @@ paths:
               example:
                 error:
                   code: 404
-                  message: "Room not found"
-                  details: ["No room exists with ID 999"]
+                  message: Room not found
+                  details:
+                  - No room exists with ID 999
         '500':
           description: Internal server error
           content:
@@ -542,14 +586,18 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Unexpected server error"
-                  details: ["Database read failed"]
-
+                  message: Unexpected server error
+                  details:
+                  - Database read failed
+      tags:
+      - Rooms
     put:
       summary: Update room details
-      description: |
-        Updates the details of an existing room.
+      description: 'Updates the details of an existing room.
+
         Room ID is immutable, but the name can be updated.
+
+        '
       requestBody:
         required: true
         content:
@@ -557,7 +605,7 @@ paths:
             schema:
               $ref: '#/components/schemas/RoomUpdateInput'
             example:
-              name: "Advanced Physics Lab"
+              name: Advanced Physics Lab
       responses:
         '200':
           description: Room updated successfully
@@ -567,7 +615,7 @@ paths:
                 $ref: '#/components/schemas/Room'
               example:
                 id: 101
-                name: "Advanced Physics Lab"
+                name: Advanced Physics Lab
         '400':
           description: Invalid request or validation error
           content:
@@ -579,14 +627,16 @@ paths:
                   value:
                     error:
                       code: 400
-                      message: "Validation failed"
-                      details: ["name: must be 3-50 characters, got 'A'"]
+                      message: Validation failed
+                      details:
+                      - 'name: must be 3-50 characters, got ''A'''
                 invalidId:
                   value:
                     error:
                       code: 400
-                      message: "Invalid room ID"
-                      details: ["Room ID must be a positive integer"]
+                      message: Invalid room ID
+                      details:
+                      - Room ID must be a positive integer
         '404':
           description: Room not found
           content:
@@ -596,8 +646,9 @@ paths:
               example:
                 error:
                   code: 404
-                  message: "Room not found"
-                  details: ["No room exists with ID 999"]
+                  message: Room not found
+                  details:
+                  - No room exists with ID 999
         '500':
           description: Internal server error
           content:
@@ -607,9 +658,11 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Unable to update room"
-                  details: ["Database update operation failed"]
-
+                  message: Unable to update room
+                  details:
+                  - Database update operation failed
+      tags:
+      - Rooms
     delete:
       summary: Delete a room
       description: Deletes a room if it is empty.
@@ -627,14 +680,16 @@ paths:
                   value:
                     error:
                       code: 400
-                      message: "Invalid room ID"
-                      details: ["Room ID must be a positive integer"]
+                      message: Invalid room ID
+                      details:
+                      - Room ID must be a positive integer
                 notEmpty:
                   value:
                     error:
                       code: 400
-                      message: "Room is not empty"
-                      details: ["Cannot delete room 101, it has 2 students"]
+                      message: Room is not empty
+                      details:
+                      - Cannot delete room 101, it has 2 students
         '404':
           description: Room not found
           content:
@@ -644,8 +699,9 @@ paths:
               example:
                 error:
                   code: 404
-                  message: "Room not found"
-                  details: ["No room exists with ID 999"]
+                  message: Room not found
+                  details:
+                  - No room exists with ID 999
         '500':
           description: Internal server error
           content:
@@ -655,41 +711,52 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Unable to delete room"
-                  details: ["Database delete operation failed"]
-
+                  message: Unable to delete room
+                  details:
+                  - Database delete operation failed
+      tags:
+      - Rooms
   /rooms/{room_id}/students:
     get:
       summary: Find all students in a room
       parameters:
-        - name: room_id
-          in: path
-          required: true
-          description: Numeric ID of the room
-          schema:
-            type: integer
-            minimum: 1
-          example: 101
+      - name: room_id
+        in: path
+        required: true
+        description: Numeric ID of the room
+        schema:
+          type: integer
+          minimum: 1
+        example: 101
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/Search'
+      - $ref: '#/components/parameters/OrderingStudents'
+      - $ref: '#/components/parameters/SexFilter'
+      - $ref: '#/components/parameters/BirthdayFrom'
+      - $ref: '#/components/parameters/BirthdayTo'
       responses:
         '200':
           description: Successful operation
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Student'
+                $ref: '#/components/schemas/PaginatedStudentList'
               example:
+                count: 2
+                next: null
+                previous: null
+                results:
                 - id: 1001
-                  name: "Alice Johnson"
-                  birthday: "2011-08-22T00:00:00.000Z"
+                  name: Alice Johnson
+                  birthday: '2011-08-22T00:00:00.000Z'
                   room_id: 101
-                  sex: "F"
+                  sex: F
                 - id: 1002
-                  name: "Bob Smith"
-                  birthday: "2010-05-14T00:00:00.000Z"
+                  name: Bob Smith
+                  birthday: '2010-05-14T00:00:00.000Z'
                   room_id: 101
-                  sex: "M"
+                  sex: M
         '400':
           description: Invalid room ID
           content:
@@ -699,8 +766,9 @@ paths:
               example:
                 error:
                   code: 400
-                  message: "Invalid room ID"
-                  details: ["Room ID must be a positive integer, got -1"]
+                  message: Invalid room ID
+                  details:
+                  - Room ID must be a positive integer, got -1
         '404':
           description: Room not found
           content:
@@ -710,8 +778,9 @@ paths:
               example:
                 error:
                   code: 404
-                  message: "Room not found"
-                  details: ["No room exists with ID 999"]
+                  message: Room not found
+                  details:
+                  - No room exists with ID 999
         '500':
           description: Internal server error
           content:
@@ -721,14 +790,21 @@ paths:
               example:
                 error:
                   code: 500
-                  message: "Unexpected server error"
-                  details: ["Database read failed"]
-
+                  message: Unexpected server error
+                  details:
+                  - Database read failed
+      tags:
+      - Rooms
 components:
   schemas:
     Student:
       type: object
-      required: [id, name, birthday, room_id, sex]
+      required:
+      - id
+      - name
+      - birthday
+      - room_id
+      - sex
       properties:
         id:
           type: integer
@@ -749,13 +825,18 @@ components:
           description: ID of the room the student is assigned to.
         sex:
           type: string
-          enum: [M, F]
+          enum:
+          - M
+          - F
           description: Gender of the student ('M' or 'F').
       additionalProperties: false
-
     StudentCreateInput:
       type: object
-      required: [name, birthday, room_id, sex]
+      required:
+      - name
+      - birthday
+      - room_id
+      - sex
       properties:
         name:
           type: string
@@ -772,13 +853,18 @@ components:
           description: ID of the room the student will be assigned to.
         sex:
           type: string
-          enum: [M, F]
+          enum:
+          - M
+          - F
           description: Gender of the student ('M' or 'F').
       additionalProperties: false
-
     StudentInput:
       type: object
-      required: [name, birthday, room_id, sex]
+      required:
+      - name
+      - birthday
+      - room_id
+      - sex
       properties:
         name:
           type: string
@@ -795,13 +881,16 @@ components:
           description: ID of the room the student is assigned to.
         sex:
           type: string
-          enum: [M, F]
+          enum:
+          - M
+          - F
           description: Gender of the student ('M' or 'F').
       additionalProperties: false
-
     Room:
       type: object
-      required: [id, name]
+      required:
+      - id
+      - name
       properties:
         id:
           type: integer
@@ -813,10 +902,10 @@ components:
           maxLength: 50
           description: Name of the room.
       additionalProperties: false
-
     RoomCreateInput:
       type: object
-      required: [name]
+      required:
+      - name
       properties:
         name:
           type: string
@@ -824,10 +913,10 @@ components:
           maxLength: 50
           description: Name of the new room.
       additionalProperties: false
-
     RoomUpdateInput:
       type: object
-      required: [name]
+      required:
+      - name
       properties:
         name:
           type: string
@@ -836,7 +925,6 @@ components:
           description: The new name for the room.
       additionalProperties: false
       minProperties: 1
-
     Error:
       type: object
       properties:
@@ -854,5 +942,143 @@ components:
               items:
                 type: string
               description: A list of specific validation or error details.
-          required: [code, message]
+          required:
+          - code
+          - message
       additionalProperties: false
+    PaginatedStudentList:
+      type: object
+      properties:
+        count:
+          type: integer
+          minimum: 0
+        next:
+          type: string
+          format: uri
+          nullable: true
+        previous:
+          type: string
+          format: uri
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Student'
+      required:
+      - count
+      - results
+    PaginatedRoomList:
+      type: object
+      properties:
+        count:
+          type: integer
+          minimum: 0
+        next:
+          type: string
+          format: uri
+          nullable: true
+        previous:
+          type: string
+          format: uri
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+      required:
+      - count
+      - results
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Page number (1-based).
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      description: Number of items per page (max 100).
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Search:
+      name: q
+      in: query
+      description: Fuzzy text search (e.g., student name or room name).
+      required: false
+      schema:
+        type: string
+    OrderingStudents:
+      name: ordering
+      in: query
+      description: 'Sort by fields. Prefix with ''-'' for descending (e.g., ''-birthday'').
+        Allowed: id, name, birthday, room_id.'
+      required: false
+      schema:
+        type: string
+    OrderingRooms:
+      name: ordering
+      in: query
+      description: 'Sort by fields. Prefix with ''-'' for descending. Allowed: id,
+        name.'
+      required: false
+      schema:
+        type: string
+    SexFilter:
+      name: sex
+      in: query
+      description: Filter by sex.
+      required: false
+      schema:
+        type: string
+        enum:
+        - M
+        - F
+    BirthdayFrom:
+      name: birthday_from
+      in: query
+      description: Include students born on/after this date (ISO 8601).
+      required: false
+      schema:
+        type: string
+        format: date
+    BirthdayTo:
+      name: birthday_to
+      in: query
+      description: Include students born on/before this date (ISO 8601).
+      required: false
+      schema:
+        type: string
+        format: date
+    RoomIdFilter:
+      name: room_id
+      in: query
+      description: Filter students by room ID.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+    RoomNameFilter:
+      name: name
+      in: query
+      description: Filter rooms by exact name. For fuzzy search, use `q`.
+      required: false
+      schema:
+        type: string
+servers:
+- url: https://api.studentrooms.com/api/v1
+  description: Production
+- url: http://localhost:8000/api/v1
+  description: Local development
+tags:
+- name: Students
+  description: Operations related to student resources.
+- name: Rooms
+  description: Operations related to room resources.
